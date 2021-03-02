@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./link/interface/ERC677Receiver.sol";
 
-// PPTToken with Governance.
-contract PPTToken is ERC20("PPS Token", "PPS"),Ownable {
+// SERToken with Governance.
+contract SERToken is ERC20("Seerlink Token", "SER"),Ownable {
     /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
@@ -152,9 +152,9 @@ contract PPTToken is ERC20("PPS Token", "PPS"),Ownable {
         );
 
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "PPT::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "PPT::delegateBySig: invalid nonce");
-        require(now <= expiry, "PPT::delegateBySig: signature expired");
+        require(signatory != address(0), "SER::delegateBySig: invalid signature");
+        require(nonce == nonces[signatory]++, "SER::delegateBySig: invalid nonce");
+        require(now <= expiry, "SER::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
@@ -184,7 +184,7 @@ contract PPTToken is ERC20("PPS Token", "PPS"),Ownable {
         view
         returns (uint256)
     {
-        require(blockNumber < block.number, "PPT::getPriorVotes: not yet determined");
+        require(blockNumber < block.number, "SER::getPriorVotes: not yet determined");
 
         uint32 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) {
@@ -221,7 +221,7 @@ contract PPTToken is ERC20("PPS Token", "PPS"),Ownable {
         internal
     {
         address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying PPTs (not scaled);
+        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SERs (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -257,7 +257,7 @@ contract PPTToken is ERC20("PPS Token", "PPS"),Ownable {
     )
         internal
     {
-        uint32 blockNumber = safe32(block.number, "PPT::_writeCheckpoint: block number exceeds 32 bits");
+        uint32 blockNumber = safe32(block.number, "SER::_writeCheckpoint: block number exceeds 32 bits");
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;

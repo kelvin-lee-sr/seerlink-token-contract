@@ -7,26 +7,26 @@ import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "./PPTToken.sol";
+import "./SERToken.sol";
 
 
 interface IMigratorChef {
-    // Perform LP token migration from legacy UniswapV2 to PPTSwap.
+    // Perform LP token migration from legacy UniswapV2 to SERSwap.
     // Take the current LP token address and return the new LP token address.
     // Migrator should have full access to the caller's LP token.
     // Return the new LP token address.
     //
     // XXX Migrator must have allowance access to UniswapV2 LP tokens.
-    // PPTSwap must mint EXACTLY the same amount of PPTSwap LP tokens or
+    // SERSwap must mint EXACTLY the same amount of SERSwap LP tokens or
     // else something bad will happen. Traditional UniswapV2 does not
     // do that so be careful!
     function migrate(IERC20 token) external returns (IERC20);
 }
 
-// MasterChef is the master of PPT. He can make PPT and he is a fair guy.
+// MasterChef is the master of SER. He can make SER and he is a fair guy.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
-// will be transferred to a governance smart contract once PPT is sufficiently
+// will be transferred to a governance smart contract once SER is sufficiently
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
@@ -39,13 +39,13 @@ contract Pool is Ownable {
         uint256 amount;     // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
         //
-        // We do some fancy math here. Basically, any point in time, the amount of PPTs
+        // We do some fancy math here. Basically, any point in time, the amount of SERs
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accPPTPerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accSERPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accPPTPerShare` (and `lastRewardBlock`) gets updated.
+        //   1. The pool's `accSERPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
         //   4. User's `rewardDebt` gets updated.
@@ -54,13 +54,13 @@ contract Pool is Ownable {
     // Info of each pool.
     struct PoolInfo {
         IERC20 lpToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. PPTs to distribute per block.
-        uint256 lastRewardBlock;  // Last block number that PPTs distribution occurs.
-        uint256 accPPTPerShare; // Accumulated PPTs per share, times 1e12. See below.
+        uint256 allocPoint;       // How many allocation points assigned to this pool. SERs to distribute per block.
+        uint256 lastRewardBlock;  // Last block number that SERs distribution occurs.
+        uint256 accSERPerShare; // Accumulated SERs per share, times 1e12. See below.
     }
 
-    // The PPT TOKEN!
-    PPTToken public PPT;
+    // The SER TOKEN!
+    SERToken public SER;
     // Dev address.
     address public devaddr;
     // Operation address.
@@ -69,11 +69,11 @@ contract Pool is Ownable {
     address public fundaddr;
     // institution address.
     address public institutionaddr;
-    // Block number when bonus PPT period ends.
+    // Block number when bonus SER period ends.
     uint256 public bonusEndBlock;
-    // PPT tokens created per block.
-    uint256 public PPTPerBlock;
-    // Bonus muliplier for early PPT makers.
+    // SER tokens created per block.
+    uint256 public SERPerBlock;
+    // Bonus muliplier for early SER makers.
     uint256 public constant BONUS_MULTIPLIER = 10;
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     IMigratorChef public migrator;
@@ -84,7 +84,7 @@ contract Pool is Ownable {
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
     // Total allocation poitns. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
-    // The block number when PPT mining starts.
+    // The block number when SER mining starts.
     uint256 public startBlock;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
@@ -92,18 +92,18 @@ contract Pool is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
     constructor(
-        PPTToken _PPT,
+        SERToken _SER,
         address _devaddr,
         address _operationaddr,
         address _fundaddr,
         address _institutionaddr,
-        uint256 _PPTPerBlock,
+        uint256 _SERPerBlock,
         uint256 _startBlock,
         uint256 _bonusEndBlock
     ) public {
-        PPT = _PPT;
+        SER = _SER;
         devaddr = _devaddr;
-        PPTPerBlock = _PPTPerBlock;
+        SERPerBlock = _SERPerBlock;
         bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
         operationaddr = _operationaddr;
@@ -115,8 +115,8 @@ contract Pool is Ownable {
         return poolInfo.length;
     }
 
-    function setPPTPerBlock(uint256 _PPTPerBlock) public onlyOwner {
-        PPTPerBlock = _PPTPerBlock;
+    function setSERPerBlock(uint256 _SERPerBlock) public onlyOwner {
+        SERPerBlock = _SERPerBlock;
     }
 
     function GetPoolInfo(uint256 id) external view returns (PoolInfo memory) {
@@ -139,11 +139,11 @@ contract Pool is Ownable {
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
-            accPPTPerShare: 0
+            accSERPerShare: 0
         }));
     }
 
-    // Update the given pool's PPT allocation point. Can only be called by the owner.
+    // Update the given pool's SER allocation point. Can only be called by the owner.
     function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
@@ -182,20 +182,20 @@ contract Pool is Ownable {
         }
     }
 
-    // 获取年化率 以PPT为单位的币本位计算
+    // 获取年化率 以SER为单位的币本位计算
     function getApy(uint256 _pid) public view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
-        uint256 yearCount = PPTPerBlock.mul(86400).div(3).mul(365);
+        uint256 yearCount = SERPerBlock.mul(86400).div(3).mul(365);
         return yearCount.div(getTvl(_pid));
     }
 
-    // 获取总量 以PPT为单位的币本位
+    // 获取总量 以SER为单位的币本位
     function getTvl(uint256 _pid) public view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
         (uint256 t1,uint256 t2,uint256 t) = IUniswapV2Pair(address(pool.lpToken)).getReserves();
         address token0 = IUniswapV2Pair(address(pool.lpToken)).token0();
         uint256 allCount = 0;
-        if(token0==address(PPT)){ // 总成本
+        if(token0==address(SER)){ // 总成本
             allCount = t1.mul(2);
         } else{
             allCount = t2.mul(2);
@@ -205,18 +205,18 @@ contract Pool is Ownable {
         return allCount.mul(lpSupply).div(totalSupply);
     }
 
-    // View function to see pending PPTs on frontend.
-    function pendingPPT(uint256 _pid, address _user) external view returns (uint256) {
+    // View function to see pending SERs on frontend.
+    function pendingSER(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accPPTPerShare = pool.accPPTPerShare;
+        uint256 accSERPerShare = pool.accSERPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 PPTReward = multiplier.mul(PPTPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accPPTPerShare = accPPTPerShare.add(PPTReward.mul(1e12).div(lpSupply));
+            uint256 SERReward = multiplier.mul(SERPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            accSERPerShare = accSERPerShare.add(SERReward.mul(1e12).div(lpSupply));
         }
-        return user.amount.mul(accPPTPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accSERPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -239,37 +239,37 @@ contract Pool is Ownable {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 PPTReward = multiplier.mul(PPTPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        uint256 SERReward = multiplier.mul(SERPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
 
-        uint256 devReward = PPTReward.mul(38);
-        PPT.mint(devaddr, devReward.div(100)); // 38% dev
-        PPT.mint(operationaddr, PPTReward.div(8)); // 12% operation
-        PPT.mint(fundaddr, PPTReward.div(4)); // 25% fund
+        uint256 devReward = SERReward.mul(38);
+        SER.mint(devaddr, devReward.div(100)); // 38% Development
+        SER.mint(operationaddr, SERReward.div(8)); // 12% Operation
+        SER.mint(fundaddr, SERReward.div(4)); // 25% Growth Fund
 
-        uint256 institutionReward = PPTReward.mul(75);
-        PPT.mint(institutionaddr,institutionReward.div(100)); // 75% institution
+        uint256 institutionReward = SERReward.mul(75);
+        SER.mint(institutionaddr,institutionReward.div(100)); // 75% Institution Node
 
-        PPT.mint(address(this), PPTReward);
-        pool.accPPTPerShare = pool.accPPTPerShare.add(PPTReward.mul(1e12).div(lpSupply));
+        SER.mint(address(this), SERReward); // Liquidity reward
+        pool.accSERPerShare = pool.accSERPerShare.add(SERReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
-    // Deposit LP tokens to MasterChef for PPT allocation.
+    // Deposit LP tokens to MasterChef for SER allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accPPTPerShare).div(1e12).sub(user.rewardDebt);
+            uint256 pending = user.amount.mul(pool.accSERPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
-                safePPTTransfer(msg.sender, pending);
+                safeSERTransfer(msg.sender, pending);
             }
         }
         if(_amount > 0) {
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accPPTPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accSERPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -279,15 +279,15 @@ contract Pool is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accPPTPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accSERPerShare).div(1e12).sub(user.rewardDebt);
         if(pending > 0) {
-            safePPTTransfer(msg.sender, pending);
+            safeSERTransfer(msg.sender, pending);
         }
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accPPTPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accSERPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -301,15 +301,15 @@ contract Pool is Ownable {
         user.rewardDebt = 0;
     }
 
-    // Safe PPT transfer function, just in case if rounding error causes pool to not have enough PPTs.
-    function safePPTTransfer(address _to, uint256 _amount) internal {
+    // Safe SER transfer function, just in case if rounding error causes pool to not have enough SERs.
+    function safeSERTransfer(address _to, uint256 _amount) internal {
 
-        uint256 PPTBal = PPT.balanceOf(address(this));
+        uint256 SERBal = SER.balanceOf(address(this));
         
-        if (_amount > PPTBal) {
-            PPT.transfer(_to, PPTBal);
+        if (_amount > SERBal) {
+            SER.transfer(_to, SERBal);
         } else {
-            PPT.transfer(_to, _amount);
+            SER.transfer(_to, _amount);
         }
     }
 
