@@ -26,7 +26,7 @@ const fs = require('fs');
 const mnemonic = process.env.PRIVATE_KEY;
 const infuraKey = process.env.INFURA_KEY;
 const etherscanKey = process.env.ETHERSCAN_KEY;
-const privKeys = [""];
+const privKeys = [process.env.PRIVATE_KEY1];
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
