@@ -1,1 +1,1 @@
-# Seerlink
+# Seerlink token contract
