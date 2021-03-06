@@ -2,7 +2,6 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./link/interface/ERC677.sol";
-import "./link/interface/ERC677Receiver.sol";
 
 // SERToken with Governance.
 contract SERToken is ERC677("Seerlink Token", "SER"),Ownable {
