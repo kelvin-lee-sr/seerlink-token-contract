@@ -57,6 +57,8 @@ contract Pool is Ownable {
         uint256 allocPoint;       // How many allocation points assigned to this pool. SERs to distribute per block.
         uint256 lastRewardBlock;  // Last block number that SERs distribution occurs.
         uint256 accSERPerShare; // Accumulated SERs per share, times 1e12. See below.
+        uint256 minAMount;
+        uint256 maxAMount;
     }
 
     // The SER TOKEN!
@@ -129,7 +131,7 @@ contract Pool is Ownable {
 
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) public onlyOwner {
+    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate,uint256 _min,uint256 _max) public onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
         }
@@ -139,17 +141,21 @@ contract Pool is Ownable {
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
-            accSERPerShare: 0
+            accSERPerShare: 0,
+            minAMount:_min,
+            maxAMount:_max
         }));
     }
 
     // Update the given pool's SER allocation point. Can only be called by the owner.
-    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
+    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate,uint256 _min,uint256 _max) public onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
         }
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint;
+        poolInfo[_pid].minAMount = _min;
+        poolInfo[_pid].maxAMount = _max;
     }
 
     // Set the migrator contract. Can only be called by the owner.
@@ -268,6 +274,12 @@ contract Pool is Ownable {
         if(_amount > 0) {
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
+            if (pool.minAMount > 0 && user.amount < pool.minAMount){
+                revert("amount is too low");
+            }
+            if (pool.maxAMount > 0 && user.amount > pool.maxAMount){
+                revert("amount is too high");
+            }
         }
         user.rewardDebt = user.amount.mul(pool.accSERPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);

@@ -67,7 +67,7 @@ module.exports = {
       // provider: () => new HDWalletProvider(mnemonic, `https://rinkeby-light.eth.linkpool.io`),
       //HDWalletProvider.pollingInterval = 25000 ms, default is 4000
       //truffle.deploymentPollingInterval = 25000 ms, default is 4000
-      provider: () => new HDWalletProvider(mnemonic, `https://http-testnet.hecochain.com`),
+      provider: () => new HDWalletProvider(privKeys, `https://http-testnet.hecochain.com`),
       network_id: 256,       // Ropsten's id
       from: "0x7008cEDC4b9cD836C0FC2cDC49BaD5d4a38C9667",
       gas: 8000000,        // Ropsten has a lower block limit than mainnet
