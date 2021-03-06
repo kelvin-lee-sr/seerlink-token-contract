@@ -1,54 +1,17 @@
 pragma solidity 0.6.12;
 
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./link/interface/ERC677.sol";
 import "./link/interface/ERC677Receiver.sol";
 
 // SERToken with Governance.
-contract SERToken is ERC20("Seerlink Token", "SER"),Ownable {
+contract SERToken is ERC677("Seerlink Token", "SER"),Ownable {
+
     /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
-    event Transfer(address indexed from, address indexed to, uint value, bytes data);
-    /**
-  * @dev transfer token to a contract address with additional data if the recipient is a contact.
-  * @param _to The address to transfer to.
-  * @param _value The amount to be transferred.
-  * @param _data The extra data to be passed to the receiving contract.
-  */
-  function transferAndCall(address _to, uint _value, bytes memory _data)
-    public
-    returns (bool success)
-  {
-    super.transfer(_to, _value);
-    Transfer(msg.sender, _to, _value, _data);
-    if (isContract(_to)) {
-      contractFallback(_to, _value, _data);
-    }
-    return true;
-  }
-
-
-  // PRIVATE
-
-  function contractFallback(address _to, uint _value, bytes memory _data)
-    private
-  {
-    ERC677Receiver receiver = ERC677Receiver(_to);
-    receiver.onTokenTransfer(msg.sender, _value, _data);
-  }
-
-  function isContract(address _addr)
-    private view
-    returns (bool hasCode)
-  {
-    uint length;
-    assembly { length := extcodesize(_addr) }
-    return length > 0;
-  }
 
     // Copied and modified from YAM code:
     // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernanceStorage.sol
