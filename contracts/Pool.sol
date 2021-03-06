@@ -166,7 +166,6 @@ contract Pool is Ownable {
 
     // 获取年化率 以SER为单位的币本位计算
     function getApy(uint256 _pid) public view returns (uint256) {
-        PoolInfo storage pool = poolInfo[_pid];
         uint256 yearCount = SERPerBlock.mul(86400).div(3).mul(365);
         return yearCount.div(getTvl(_pid));
     }
@@ -174,7 +173,7 @@ contract Pool is Ownable {
     // 获取总量 以SER为单位的币本位
     function getTvl(uint256 _pid) public view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
-        (uint256 t1,uint256 t2,uint256 t) = IUniswapV2Pair(address(pool.lpToken)).getReserves();
+        (uint256 t1,uint256 t2,) = IUniswapV2Pair(address(pool.lpToken)).getReserves();
         address token0 = IUniswapV2Pair(address(pool.lpToken)).token0();
         uint256 allCount = 0;
         if(token0==address(SER)){ // 总成本
