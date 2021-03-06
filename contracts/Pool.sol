@@ -92,7 +92,13 @@ contract Pool is Ownable {
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
-
+    event SetDev(address indexed devAddress);
+    event SetSERPerBlock(uint256 _SERPerBlock);
+    event SetMigrator(address _migrator);
+    event SetOperation(address _operation);
+    event SetFund(address _fund);
+    event SetInstitution(address _institution);
+    event SetPool(uint256 pid ,address lpaddr,uint256 point,uint256 min,uint256 max);
     constructor(
         SERToken _SER,
         address _devaddr,
@@ -119,6 +125,7 @@ contract Pool is Ownable {
 
     function setSERPerBlock(uint256 _SERPerBlock) public onlyOwner {
         SERPerBlock = _SERPerBlock;
+        emit SetSERPerBlock(_SERPerBlock);
     }
 
     function GetPoolInfo(uint256 id) external view returns (PoolInfo memory) {
@@ -145,6 +152,7 @@ contract Pool is Ownable {
             minAMount:_min,
             maxAMount:_max
         }));
+        emit SetPool(poolInfo.length-1 , _lpToken, _allocPoint, _min, _max);
     }
 
     // Update the given pool's SER allocation point. Can only be called by the owner.
@@ -156,11 +164,14 @@ contract Pool is Ownable {
         poolInfo[_pid].allocPoint = _allocPoint;
         poolInfo[_pid].minAMount = _min;
         poolInfo[_pid].maxAMount = _max;
+        emit SetPool(_pid , poolInfo[_pid].lpToken, _allocPoint, _min, _max);
     }
 
     // Set the migrator contract. Can only be called by the owner.
     function setMigrator(IMigratorChef _migrator) public onlyOwner {
+        require(_migrator != address(0), "_migrator is address(0)");
         migrator = _migrator;
+        emit SetMigrator(_migrator);
     }
 
     // Migrate lp token to another lp contract. Can be called by anyone. We trust that migrator contract is good.
@@ -328,24 +339,32 @@ contract Pool is Ownable {
     // Update dev address by the previous dev.
     function dev(address _devaddr) public {
         require(msg.sender == devaddr, "dev: wut?");
+        require(_devaddr != address(0), "_devaddr is address(0)");
         devaddr = _devaddr;
+        emit SetDev(_devaddr);
     }
 
     // Update operation address by the previous operation.
     function operation(address _opaddr) public {
         require(msg.sender == operationaddr, "operation: wut?");
+        require(_opaddr != address(0), "_opaddr is address(0)");
         operationaddr = _opaddr;
+        emit SetOperation(_opaddr);
     }
 
     // Update fund address by the previous fund.
     function fund(address _fundaddr) public {
         require(msg.sender == fundaddr, "fund: wut?");
+        require(_fundaddr != address(0), "_fundaddr is address(0)");
         fundaddr = _fundaddr;
+        emit SetFund(_fundaddr);
     }
 
     // Update institution address by the previous institution.
     function institution(address _institutionaddr) public {
         require(msg.sender == _institutionaddr, "institution: wut?");
+        require(_institutionaddr != address(0), "_institutionaddr is address(0)");
         institutionaddr = _institutionaddr;
+        emit SetInstitution(_institutionaddr);
     }
 }

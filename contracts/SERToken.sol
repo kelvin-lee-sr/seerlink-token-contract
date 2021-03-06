@@ -42,7 +42,7 @@ contract SERToken is ERC20("Seerlink Token", "SER"),Ownable {
   }
 
   function isContract(address _addr)
-    private
+    private view
     returns (bool hasCode)
   {
     uint length;

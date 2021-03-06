@@ -41,7 +41,7 @@ contract Operator is Context, Ownable {
             newOperator_ != address(0),
             'operator: zero address given for new operator'
         );
-        emit OperatorTransferred(address(0), newOperator_);
+        emit OperatorTransferred(_operator, newOperator_);
         _operator = newOperator_;
     }
 }
