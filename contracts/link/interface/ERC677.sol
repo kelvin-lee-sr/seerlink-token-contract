@@ -17,19 +17,17 @@ contract ERC677 is ERC20 {
         
         // Check if _receiver is a contract
         // !! Commented out as to not cause issues between smart contracts and EOAs !!
-        // if(isContract(_receiver)) {
-        //    _receiver.call(abi.encodeWithSignature(("onTokenTransfer(address,uint256,bytes)"), _receiver, _amount, _data));
-        // }
-
-        (bool result,) = _receiver.call(abi.encodeWithSignature(
-            ("onTokenTransfer(address,uint256,bytes)"), 
-            _receiver, 
-            _amount, 
-            _data
-            )
-        );
-
-        return true; // The return value is unclear on how to be used.
+        if(isContract(_receiver)) {
+           (bool result,) = _receiver.call(abi.encodeWithSignature(
+                ("onTokenTransfer(address,uint256,bytes)"), 
+                _receiver, 
+                _amount, 
+                _data
+                )
+            );
+            return result;
+        }
+        return false; // The return value is unclear on how to be used.
     }
 
     /**
